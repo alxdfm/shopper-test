@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import db from './config/databaseConfig';
+import db from '../config/databaseConfig';
 
 export const databaseProviders = [
   {
@@ -13,7 +13,6 @@ export const databaseProviders = [
         password: db().password,
         database: db().name,
         entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-        synchronize: true,
       });
 
       return dataSource.initialize();
