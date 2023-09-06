@@ -5,9 +5,8 @@ import { DatabaseModule } from './database.module';
 import { ConfigModule } from '@nestjs/config';
 import configuration from './config/databaseConfig';
 
-const test = () => configuration;
 @Module({
-  imports: [DatabaseModule, ConfigModule.forRoot({ load: [test] })],
+  imports: [DatabaseModule, ConfigModule.forRoot({ load: [configuration] })],
   controllers: [AppController],
   providers: [AppService],
 })
