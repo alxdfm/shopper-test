@@ -2,12 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { UpdatePriceDto } from './dto/update-price.dto';
+import { Packs } from './entities/packs.entity';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @Inject('PRODUCT_REPOSITORY')
     private productRepository: Repository<Product>,
+    @Inject('PACKS_REPOSITORY')
+    private packsRepository: Repository<Packs>,
   ) {}
 
   mountWhere(arrayCode: number[]) {
@@ -22,6 +25,7 @@ export class ProductsService {
     const result = this.productRepository.find({
       where: this.mountWhere(productsCode),
     });
+    // const allPacks = await this.packsRepository.find();
     return result;
   }
 
@@ -29,7 +33,7 @@ export class ProductsService {
     const getProductsCode = [];
 
     for (const item of updateData) {
-      getProductsCode.push(item.product_code);
+      getProductsCode.push(item.productCode);
     }
 
     const result = await this.findMany(getProductsCode);
@@ -40,10 +44,10 @@ export class ProductsService {
 
     for (const item of result) {
       const filterUpdateData = updateData
-        .filter((data) => data.product_code === item.code)
+        .filter((data) => data.productCode === item.code)
         .at(0);
 
-      item.sales_price = filterUpdateData.new_price;
+      item.salesPrice = filterUpdateData.newPrice;
       this.productRepository.save(item);
     }
   }

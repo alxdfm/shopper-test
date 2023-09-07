@@ -8,9 +8,9 @@ export class Product {
   @Column({ length: 100 })
   name: string;
 
-  @Column({ type: 'decimal' })
-  cost_price: number;
+  @Column({ name: 'cost_price', type: 'decimal' })
+  costPrice: number;
 
-  @Column({ type: 'decimal' })
-  sales_price: number;
+  @Column({ name: 'sales_price', type: 'decimal' })
+  salesPrice: number;
 }
