@@ -7,8 +7,8 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  findMany(@Body() body: { productsCode: number[] }) {
-    return this.productsService.findMany(body.productsCode);
+  validate(@Body() body: { dataToValidate: UpdatePriceDto[] }) {
+    return this.productsService.validate(body.dataToValidate);
   }
 
   @Post()

@@ -9,8 +9,8 @@ export class Packs {
   packId: number;
 
   @Column({ name: 'product_id' })
-  costPrice: number;
+  productId: number;
 
   @Column({ name: 'qty' })
-  salesPrice: number;
+  qty: number;
 }
