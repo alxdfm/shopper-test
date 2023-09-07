@@ -29,13 +29,18 @@ export class ProductsService {
     return arrayResult;
   }
 
+  getProductsCode(updateData) {
+    const array = [];
+    for (const item of updateData) {
+      array.push(item.productCode);
+    }
+    return array;
+  }
+
   async validate(updateData: UpdatePriceDto[]): Promise<void | ErrorType> {
     try {
       //extract product code from array
-      const getProductsCode = [];
-      for (const item of updateData) {
-        getProductsCode.push(item.productCode);
-      }
+      const getProductsCode = this.getProductsCode(updateData);
 
       //find the match products and packs
       const productResult = await this.productRepository.find({
@@ -104,27 +109,12 @@ export class ProductsService {
 
   async updatePrice(updateData: UpdatePriceDto[]): Promise<any> {
     try {
-      const getProductsCode = [];
+      const getProductsCode = this.getProductsCode(updateData);
 
-      for (const item of updateData) {
-        getProductsCode.push(item.productCode);
-      }
-
+      //find the match products and packs
       const productResult = await this.productRepository.find({
         where: this.mountWhereCode(getProductsCode, 'code'),
       });
-
-      const packResult = await this.packsRepository.find();
-
-      if (!packIncludesProduct(packResult, getProductsCode)) {
-        ErrorFactory(
-          'Há uma atualização de preço de pacotes sem atualização de preço de produtos, ou o inverso.',
-        );
-      }
-
-      if (productResult.length === 0) {
-        ErrorFactory('Não foram encontrados produtos para os dados informados');
-      }
 
       for (const item of productResult) {
         const filterUpdateData = updateData
