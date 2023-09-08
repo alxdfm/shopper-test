@@ -1,4 +1,4 @@
-export class UpdatePriceDto {
+export interface UpdatePriceDto {
   productCode: number;
   newPrice: number;
 }

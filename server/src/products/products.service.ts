@@ -95,7 +95,7 @@ export class ProductsService {
 
         if (!salesGreaterCost(data.newPrice, filter.costPrice)) {
           ErrorFactory(
-            'O preço de venda de algum de seus produtos é maior que o custo do produto',
+            'O preço de venda de algum de seus produtos é menor que o custo do produto',
           );
         }
 

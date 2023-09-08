@@ -2,7 +2,7 @@ import { UpdatePriceDto } from '../dto/update-price.dto';
 import { Packs } from '../entities/packs.entity';
 
 export const salesGreaterCost = (salesPrice: number, costPrice: number) => {
-  return salesPrice < costPrice;
+  return salesPrice > costPrice;
 };
 
 export const maxReajustPrice = (
