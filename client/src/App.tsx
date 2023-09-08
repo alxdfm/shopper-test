@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Container, Content } from "./styles";
+import { Container, Content, Header, HeaderContainer, Logo } from "./styles";
 
 function App() {
   const [text, setText] = useState<string>();
@@ -17,6 +17,17 @@ function App() {
   };
   return (
     <Container>
+      <Header>
+        <HeaderContainer>
+          <Logo>
+            <a href="https://landing.shopper.com.br/">
+              <img src="logo.webp" />
+            </a>
+          </Logo>
+          <p>Teste técnico</p>
+          <a href="https://github.com/alxdfm">Alexandre Machado</a>
+        </HeaderContainer>
+      </Header>
       <Content>
         <input type={"file"} accept={".csv"} onChange={handleFileChange} />
         <p>{text}</p>
