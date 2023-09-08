@@ -50,25 +50,34 @@ export const arrayIsNotEmpty = (array: any[]) => {
 export const checkPackPrice = (
   packs: Packs[],
   updateData: UpdatePriceDto[],
-) => {
+  products: Product[],
+): ReturnProduct => {
   let amount = 0;
   for (const pack of packs) {
     const product = updateData
-      .filter((data) => data.productCode === pack.productId)
+      .filter((data) => data.productCode === pack.packId)
       .at(0);
-
-    //TODO
-    if (!product) {
-      return true;
-    }
 
     const productPrice = product.newPrice;
     const result = productPrice;
     amount = amount + result;
   }
 
-  const packPrice = updateData
+  const pack = updateData
     .filter((data) => data.productCode === packs.at(0).packId)
-    .at(0).newPrice;
-  return amount === packPrice;
+    .at(0);
+
+  const product = products
+    .filter((product) => product.code === pack.productCode)
+    .at(0);
+
+  if (amount !== pack.newPrice) {
+    const productFormatted = getProductById(products, product.code);
+    return {
+      ...productFormatted,
+      newPrice: pack.newPrice,
+      error: ['O pacote cuja soma dos produtos não estão condizentes.'],
+    };
+  }
+  return;
 };

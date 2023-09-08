@@ -11,7 +11,14 @@ import {
   salesGreaterCost,
 } from './utils/products.validation';
 import ErrorFactory, { ErrorType } from 'src/errors/error';
-import { getProductsCode, removeDuplicated } from './utils/utils';
+import {
+  addError,
+  chargeProductInfos,
+  getProductsCode,
+  mergeErrors,
+  removeDuplicatedPacks,
+  removeDuplicatedReturnProducts,
+} from './utils/utils';
 @Injectable()
 export class ProductsService {
   constructor(
@@ -43,9 +50,8 @@ export class ProductsService {
 
   async validate(
     updateData: UpdatePriceDto[],
-  ): Promise<ReturnProduct | ErrorType> {
+  ): Promise<ReturnProduct[] | ErrorType> {
     try {
-      const productInfos: ReturnProduct[] = [];
       const productsCode: number[] = getProductsCode(updateData);
 
       const productResult = await this.getProducts(productsCode);
@@ -56,6 +62,17 @@ export class ProductsService {
 
       const packResult = [...packResultPack, ...packResultProduct];
 
+      const productInfos: ReturnProduct[] = chargeProductInfos(
+        productResult,
+        updateData,
+      );
+
+      if (!arrayIsNotEmpty(productResult)) {
+        ErrorFactory(
+          'Não foram encontrados produtos para os dados informados.',
+        );
+      }
+
       const validatePackIncludesProduct = packIncludesProduct(
         packResult,
         productsCode,
@@ -64,22 +81,21 @@ export class ProductsService {
 
       validatePackIncludesProduct.map((product) => productInfos.push(product));
 
-      if (!arrayIsNotEmpty(productResult)) {
-        ErrorFactory(
-          'Não foram encontrados produtos para os dados informados.',
-        );
-      }
-
-      const packNoDuplicate = removeDuplicated(packResultPack);
+      const packNoDuplicate = removeDuplicatedPacks(packResultPack);
       for (const pack of packNoDuplicate) {
         const filter = packResultPack.filter(
           (packR) => packR.packId === pack.packId,
         );
-        if (!checkPackPrice(filter, updateData)) {
-          ErrorFactory(
-            'Existem pacotes cuja soma dos produtos não estão condizentes.',
-          );
-        }
+
+        const validateCheckPackPrice = checkPackPrice(
+          filter,
+          updateData,
+          productResult,
+        );
+
+        const oldProducts = productInfos;
+        productInfos.push(validateCheckPackPrice);
+        mergeErrors(oldProducts, productInfos);
       }
 
       for (const data of updateData) {
@@ -88,18 +104,38 @@ export class ProductsService {
           .at(0);
 
         if (!salesGreaterCost(data.newPrice, filter.costPrice)) {
-          ErrorFactory(
-            'O preço de venda de algum de seus produtos é menor que o custo do produto',
+          const updatedProductInfo = addError(
+            filter,
+            data.newPrice,
+            productInfos,
+            'O preço de venda é menor que o custo do produto',
           );
+
+          if (updatedProductInfo) {
+            const oldProducts = productInfos;
+            productInfos.push(updatedProductInfo);
+            mergeErrors(oldProducts, productInfos);
+          }
         }
 
         const percentage = 10;
         if (maxReajustPrice(percentage, filter.salesPrice, data.newPrice)) {
-          ErrorFactory(
+          const updatedProductInfo = addError(
+            filter,
+            data.newPrice,
+            productInfos,
             `O preço de venda superou a variação de ${percentage}% solicitada pela equipe de marketing.`,
           );
+
+          if (updatedProductInfo) {
+            const oldProducts = productInfos;
+            productInfos.push(updatedProductInfo);
+            mergeErrors(oldProducts, productInfos);
+          }
         }
       }
+
+      return removeDuplicatedReturnProducts(productInfos);
     } catch (e) {
       return { errorMessage: e.message };
     }
