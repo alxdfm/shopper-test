@@ -1,17 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
-import { UpdatePriceDto } from './dto/update-price.dto';
+import { ReturnProduct, UpdatePriceDto } from './dto/products.dto';
 import { Packs } from './entities/packs.entity';
 import {
   arrayIsNotEmpty,
   checkPackPrice,
   maxReajustPrice,
   packIncludesProduct,
-  removeDuplicated,
   salesGreaterCost,
 } from './utils/products.validation';
 import ErrorFactory, { ErrorType } from 'src/errors/error';
+import { getProductsCode, removeDuplicated } from './utils/utils';
 @Injectable()
 export class ProductsService {
   constructor(
@@ -29,14 +29,6 @@ export class ProductsService {
     return arrayResult;
   }
 
-  getProductsCode(updateData) {
-    const array = [];
-    for (const item of updateData) {
-      array.push(item.productCode);
-    }
-    return array;
-  }
-
   async getProducts(productsCode) {
     return await this.productRepository.find({
       where: this.mountWhereCode(productsCode, 'code'),
@@ -49,26 +41,28 @@ export class ProductsService {
     });
   }
 
-  async validate(updateData: UpdatePriceDto[]): Promise<void | ErrorType> {
+  async validate(
+    updateData: UpdatePriceDto[],
+  ): Promise<ReturnProduct | ErrorType> {
     try {
-      const getProductsCode = this.getProductsCode(updateData);
+      const productInfos: ReturnProduct[] = [];
+      const productsCode: number[] = getProductsCode(updateData);
 
-      const productResult = await this.getProducts(getProductsCode);
+      const productResult = await this.getProducts(productsCode);
 
-      const packResultProduct = await this.getPacks(
-        getProductsCode,
-        'productId',
-      );
+      const packResultProduct = await this.getPacks(productsCode, 'productId');
 
-      const packResultPack = await this.getPacks(getProductsCode, 'packId');
+      const packResultPack = await this.getPacks(productsCode, 'packId');
 
       const packResult = [...packResultPack, ...packResultProduct];
 
-      if (!packIncludesProduct(packResult, getProductsCode)) {
-        ErrorFactory(
-          'Há uma atualização de preço de pacotes sem atualização de preço de produtos.',
-        );
-      }
+      const validatePackIncludesProduct = packIncludesProduct(
+        packResult,
+        productsCode,
+        productResult,
+      );
+
+      validatePackIncludesProduct.map((product) => productInfos.push(product));
 
       if (!arrayIsNotEmpty(productResult)) {
         ErrorFactory(
@@ -113,11 +107,11 @@ export class ProductsService {
 
   async updatePrice(updateData: UpdatePriceDto[]): Promise<any> {
     try {
-      const getProductsCode = this.getProductsCode(updateData);
+      const productsCode = getProductsCode(updateData);
 
       //find the match products and packs
       const productResult = await this.productRepository.find({
-        where: this.mountWhereCode(getProductsCode, 'code'),
+        where: this.mountWhereCode(productsCode, 'code'),
       });
 
       for (const item of productResult) {
