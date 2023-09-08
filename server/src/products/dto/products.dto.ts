@@ -7,6 +7,6 @@ export interface ReturnProduct {
   code: number;
   name: string;
   currentPrice: number;
-  newPrice?: number;
-  error?: string[];
+  newPrice: number;
+  error: string[];
 }

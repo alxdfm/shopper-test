@@ -4,10 +4,9 @@ import { Product } from './entities/product.entity';
 import { ReturnProduct, UpdatePriceDto } from './dto/products.dto';
 import { Packs } from './entities/packs.entity';
 import {
-  arrayIsNotEmpty,
+  arrayValidate,
   checkPackPrice,
   maxReajustPrice,
-  packIncludesProduct,
   salesGreaterCost,
 } from './utils/products.validation';
 import ErrorFactory, { ErrorType } from 'src/errors/error';
@@ -15,7 +14,6 @@ import {
   addError,
   chargeProductInfos,
   getProductsCode,
-  mergeErrors,
   removeDuplicatedPacks,
   removeDuplicatedReturnProducts,
 } from './utils/utils';
@@ -56,30 +54,18 @@ export class ProductsService {
 
       const productResult = await this.getProducts(productsCode);
 
-      const packResultProduct = await this.getPacks(productsCode, 'productId');
-
       const packResultPack = await this.getPacks(productsCode, 'packId');
-
-      const packResult = [...packResultPack, ...packResultProduct];
 
       const productInfos: ReturnProduct[] = chargeProductInfos(
         productResult,
         updateData,
       );
 
-      if (!arrayIsNotEmpty(productResult)) {
+      if (!arrayValidate(productResult, updateData)) {
         ErrorFactory(
-          'Não foram encontrados produtos para os dados informados.',
+          'Não foram encontrados um ou mais produtos para os dados informados.',
         );
       }
-
-      const validatePackIncludesProduct = packIncludesProduct(
-        packResult,
-        productsCode,
-        productResult,
-      );
-
-      validatePackIncludesProduct.map((product) => productInfos.push(product));
 
       const packNoDuplicate = removeDuplicatedPacks(packResultPack);
       for (const pack of packNoDuplicate) {
@@ -87,15 +73,7 @@ export class ProductsService {
           (packR) => packR.packId === pack.packId,
         );
 
-        const validateCheckPackPrice = checkPackPrice(
-          filter,
-          updateData,
-          productResult,
-        );
-
-        const oldProducts = productInfos;
-        productInfos.push(validateCheckPackPrice);
-        mergeErrors(oldProducts, productInfos);
+        checkPackPrice(filter, updateData, productInfos);
       }
 
       for (const data of updateData) {
@@ -106,15 +84,12 @@ export class ProductsService {
         if (!salesGreaterCost(data.newPrice, filter.costPrice)) {
           const updatedProductInfo = addError(
             filter,
-            data.newPrice,
             productInfos,
             'O preço de venda é menor que o custo do produto',
           );
 
           if (updatedProductInfo) {
-            const oldProducts = productInfos;
             productInfos.push(updatedProductInfo);
-            mergeErrors(oldProducts, productInfos);
           }
         }
 
@@ -122,15 +97,12 @@ export class ProductsService {
         if (maxReajustPrice(percentage, filter.salesPrice, data.newPrice)) {
           const updatedProductInfo = addError(
             filter,
-            data.newPrice,
             productInfos,
             `O preço de venda superou a variação de ${percentage}% solicitada pela equipe de marketing.`,
           );
 
           if (updatedProductInfo) {
-            const oldProducts = productInfos;
             productInfos.push(updatedProductInfo);
-            mergeErrors(oldProducts, productInfos);
           }
         }
       }
@@ -145,7 +117,6 @@ export class ProductsService {
     try {
       const productsCode = getProductsCode(updateData);
 
-      //find the match products and packs
       const productResult = await this.productRepository.find({
         where: this.mountWhereCode(productsCode, 'code'),
       });

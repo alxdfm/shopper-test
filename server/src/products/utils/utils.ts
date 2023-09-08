@@ -2,16 +2,12 @@ import { ReturnProduct, UpdatePriceDto } from '../dto/products.dto';
 import { Packs } from '../entities/packs.entity';
 import { Product } from '../entities/product.entity';
 
-export const getProductById = (
-  products: Product[],
+export const getProductInfoById = (
+  products: ReturnProduct[],
   id: number,
 ): ReturnProduct => {
   const product = products.filter((product) => product.code === id).at(0);
-  return {
-    code: product.code,
-    name: product.name,
-    currentPrice: product.salesPrice,
-  };
+  return product;
 };
 
 export const getProductsCode = (updateData): number[] => {
@@ -44,56 +40,8 @@ export const removeDuplicatedReturnProducts = (
   return filter;
 };
 
-export const checkDuplicateReturnProduct = (
-  arrayProduct: ReturnProduct[],
-  code: number,
-): boolean => {
-  return !!arrayProduct.filter((product) => product.code === code).at(0);
-};
-
-export const assignNewValueToProduct = (
-  products: ReturnProduct[],
-  updatePrices: UpdatePriceDto[],
-): ReturnProduct[] => {
-  const returnProducts: ReturnProduct[] = [];
-  for (const product of products) {
-    for (const updatePrice of updatePrices) {
-      if (product.code === updatePrice.productCode) {
-        returnProducts.push({ ...product, newPrice: updatePrice.newPrice });
-      }
-    }
-  }
-  return returnProducts;
-};
-
-export const mergeErrors = (
-  oldResults: ReturnProduct[],
-  newResults: ReturnProduct[],
-): ReturnProduct[] => {
-  const updatedResult = [];
-  for (const oldResult of oldResults) {
-    for (const newResult of newResults) {
-      console.log(newResult);
-      for (const error of newResult.error) {
-        if (!oldResult.error.includes(error)) {
-          const currentResult: ReturnProduct = {
-            ...oldResult,
-          };
-          currentResult.error.push(error);
-          updatedResult.push(currentResult);
-        } else {
-          updatedResult.push(oldResult);
-        }
-      }
-    }
-  }
-
-  return updatedResult;
-};
-
 export const addError = (
   product: Product,
-  newPrice: number,
   returnProducts: ReturnProduct[],
   errorMessage: string,
 ): ReturnProduct => {
@@ -103,8 +51,7 @@ export const addError = (
 
   if (!getReturnProductById) {
     return {
-      ...getProductById([product], product.code),
-      newPrice,
+      ...getProductInfoById([getReturnProductById], product.code),
       error: [errorMessage],
     };
   }

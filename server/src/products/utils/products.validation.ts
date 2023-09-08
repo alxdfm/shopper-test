@@ -1,7 +1,6 @@
 import { ReturnProduct, UpdatePriceDto } from '../dto/products.dto';
 import { Packs } from '../entities/packs.entity';
-import { Product } from '../entities/product.entity';
-import { checkDuplicateReturnProduct, getProductById } from './utils';
+import { getProductInfoById } from './utils';
 
 export const salesGreaterCost = (salesPrice: number, costPrice: number) => {
   return salesPrice > costPrice;
@@ -16,68 +15,56 @@ export const maxReajustPrice = (
   return maxReajustDiff < Math.abs(newPrice - oldPrice);
 };
 
-export const packIncludesProduct = (
-  pack: Packs[],
-  productsCode: number[],
-  products: Product[],
-): ReturnProduct[] => {
-  const returnProducts: ReturnProduct[] = [];
-  for (const item of pack) {
-    if (!productsCode.includes(item.productId)) {
-      const returnProduct: ReturnProduct = {
-        ...getProductById(products, item.packId),
-        error: [
-          'Há uma atualização de preço de pacotes sem atualização de preço de produtos.',
-        ],
-      };
-      if (!checkDuplicateReturnProduct(returnProducts, item.packId)) {
-        returnProducts.push(returnProduct);
-      }
-    } else {
-      const returnProduct: ReturnProduct = {
-        ...getProductById(products, item.productId),
-      };
-      returnProducts.push(returnProduct);
-    }
-  }
-  return returnProducts;
-};
-
-export const arrayIsNotEmpty = (array: any[]) => {
-  return array.length !== 0;
+export const arrayValidate = (array1: any[], array2: any[]) => {
+  return array1.length !== 0 && array1.length === array2.length;
 };
 
 export const checkPackPrice = (
   packs: Packs[],
   updateData: UpdatePriceDto[],
-  products: Product[],
+  returnProducts: ReturnProduct[],
 ): ReturnProduct => {
-  let amount = 0;
+  let productsPrice = 0;
   for (const pack of packs) {
     const product = updateData
-      .filter((data) => data.productCode === pack.packId)
+      .filter((data) => data.productCode === pack.productId)
       .at(0);
 
-    const productPrice = product.newPrice;
-    const result = productPrice;
-    amount = amount + result;
+    if (!product) {
+      const filter = returnProducts
+        .filter((product) => product.code === pack.packId)
+        .at(0);
+
+      const errorMessage =
+        'É necessário atualizar, também, os preços dos itens inclusos neste pack.';
+
+      filter.error.push(errorMessage);
+
+      return filter;
+    }
+
+    productsPrice = productsPrice + product.newPrice * pack.qty;
   }
 
   const pack = updateData
     .filter((data) => data.productCode === packs.at(0).packId)
     .at(0);
 
-  const product = products
-    .filter((product) => product.code === pack.productCode)
-    .at(0);
+  const productInfo = getProductInfoById(returnProducts, pack.productCode);
 
-  if (amount !== pack.newPrice) {
-    const productFormatted = getProductById(products, product.code);
-    return {
-      ...productFormatted,
-      newPrice: pack.newPrice,
-      error: ['O pacote cuja soma dos produtos não estão condizentes.'],
-    };
+  if (productsPrice !== pack.newPrice) {
+    const filter = returnProducts
+      .filter((product) => product.code === pack.productCode)
+      .at(0);
+
+    const errorMessage =
+      'A soma dos produtos presentes neste pack é diferente do valor do pack.';
+
+    filter.error.push(errorMessage);
+
+    return filter;
   }
-  return;
+  return {
+    ...productInfo,
+  };
 };
