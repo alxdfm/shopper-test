@@ -1,6 +1,7 @@
 # Teste técnico da Shopper
 No repositório há o backend na pasta server e o frontend na pasta client.
 No backend utilizei NestJs com TypeOrm e no frontend utilizei React com Vite e styled-components.
+(fiz o projeto rodando o node na versão 16.15.1)
 ### Backend:
 ```
 cd server
