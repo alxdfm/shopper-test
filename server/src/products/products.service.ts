@@ -124,9 +124,6 @@ export class ProductsService {
 
   async updatePrice(updateData: UpdatePriceDto[]): Promise<any> {
     try {
-      // const valid = await this.validate(updateData);
-
-      // if (valid)
       const productsCode = getProductsCode(updateData);
 
       const productResult = await this.getProducts(productsCode);
