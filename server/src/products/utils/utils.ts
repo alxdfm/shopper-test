@@ -85,3 +85,11 @@ export const chargeProductInfos = (
 
   return charged;
 };
+
+export const extractProductIdFromPack = (array: Packs[]) => {
+  const temp = [];
+  for (const item of array) {
+    temp.push(item.productId);
+  }
+  return temp;
+};

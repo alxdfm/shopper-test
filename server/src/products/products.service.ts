@@ -13,6 +13,7 @@ import ErrorFactory, { ErrorType } from 'src/errors/error';
 import {
   addError,
   chargeProductInfos,
+  extractProductIdFromPack,
   getProductsCode,
   removeDuplicatedPacks,
   removeDuplicatedReturnProducts,
@@ -40,10 +41,18 @@ export class ProductsService {
     });
   }
 
+  async getAllProducts() {
+    return await this.productRepository.find();
+  }
+
   async getPacks(productsCode, findKey) {
     return await this.packsRepository.find({
       where: this.mountWhereCode(productsCode, findKey),
     });
+  }
+
+  async getAllPacks() {
+    return await this.packsRepository.find();
   }
 
   async validate(
@@ -115,19 +124,49 @@ export class ProductsService {
 
   async updatePrice(updateData: UpdatePriceDto[]): Promise<any> {
     try {
+      // const valid = await this.validate(updateData);
+
+      // if (valid)
       const productsCode = getProductsCode(updateData);
 
-      const productResult = await this.productRepository.find({
-        where: this.mountWhereCode(productsCode, 'code'),
-      });
+      const productResult = await this.getProducts(productsCode);
+
+      const packResultPack = await this.getAllPacks();
+
+      const allProducts = await this.getAllProducts();
 
       for (const item of productResult) {
         const filterUpdateData = updateData
           .filter((data) => data.productCode === item.code)
           .at(0);
 
-        item.salesPrice = filterUpdateData.newPrice;
-        this.productRepository.save(item);
+        if (extractProductIdFromPack(packResultPack).includes(item.code)) {
+          for (const pack of packResultPack) {
+            if (item.code === pack.productId) {
+              const packs = allProducts
+                .filter((prod) => pack.packId === prod.code)
+                .at(0);
+
+              const product = allProducts
+                .filter((prod) => pack.productId === prod.code)
+                .at(0);
+
+              const oldProductValue = product.salesPrice * pack.qty;
+              const newProductValue = filterUpdateData.newPrice * pack.qty;
+
+              const difference = newProductValue - oldProductValue;
+
+              packs.salesPrice = Number(packs.salesPrice) + Number(difference);
+              this.productRepository.save(packs);
+
+              item.salesPrice = filterUpdateData.newPrice;
+              this.productRepository.save(item);
+            }
+          }
+        } else {
+          item.salesPrice = filterUpdateData.newPrice;
+          this.productRepository.save(item);
+        }
       }
     } catch (e) {
       return { error: e.message };
