@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { UpdatePriceDto } from './dto/products.dto';
 
@@ -6,12 +6,12 @@ import { UpdatePriceDto } from './dto/products.dto';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  @Get()
+  @Post('/validate')
   validate(@Body() body: { dataToValidate: UpdatePriceDto[] }) {
     return this.productsService.validate(body.dataToValidate);
   }
 
-  @Post()
+  @Post('/update')
   updatePrice(@Body() body: { dataToUpdate: UpdatePriceDto[] }) {
     return this.productsService.updatePrice(body.dataToUpdate);
   }
